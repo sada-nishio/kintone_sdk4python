@@ -5,6 +5,7 @@ import sys
 import base64
 import urllib
 import httplib2
+import json
 
 class Kintone:
     """
@@ -94,8 +95,31 @@ class Kintone:
         headers_obj = self.make_headers(method)
         http_client = httplib2.Http()
         (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
-        print(resp_headers)
-        print('--------------')
-        print(content.decode('utf-8'))
+        #for debug
+        #print(resp_headers)
+        return json.loads(content.decode('utf-8'))
 
+    ##Getting Records by query.
+    def get_records(self, app, query='', fields=[], totalCount=False, guest_space_id=''):
+        method = 'GET'
+        params = {
+            'app': app
+        }
+        if (query):
+            params['query'] = query
+        if (fields):
+            i = 0
+            for field in fields:
+                params['fields' + '[' + str(i) + ']'] = field
+                i += 1
+        if (totalCount):
+            params['totalCount'] = totalCount
+        url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
+        print(url)
+        headers_obj = self.make_headers(method)
+        http_client = httplib2.Http()
+        (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
+        #for debug
+        #print(resp_headers)
+        return json.loads(content.decode('utf-8'))
 
