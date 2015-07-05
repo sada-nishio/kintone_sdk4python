@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf_8 -*-
 
-import base64
-import urllib
-import httplib2
-import json
+try:
+    import base64
+    import urllib
+    import httplib2
+    import json
+except:
+    print("Error: can't import library")
 
 class Kintone:
     """
     kintone SDK for Python
-    @user_auth
-    @token_auth
-    @user_basic_auth
 
     """
     #initialize
@@ -21,11 +21,23 @@ class Kintone:
         self.domain = ''
         self.basic_auth = {}
 
+    #Request Parameters
+    ##setting domain name
+    def set_domain(self, domain_name):
+        self.domain = domain_name
+
+    ##setting Basic Auth information.
+    def set_basic_auth(self, id, password):
+        self.basic_auth = {
+            'id': id,
+            'password': password
+        }
+
     #Method for Authentication
     ##setting User Information using for Authentication.
-    def set_user_auth(self, name, password):
+    def set_user_auth(self, login_name, password):
         self.user_auth = {
-            'login_name': name,
+            'login_name': login_name,
             'password': password
         }
 
@@ -34,18 +46,6 @@ class Kintone:
         self.token_auth = {
             'token': token
         }
-
-    ##setting Basic Auth information.
-    def set_basic_auth(self, name, password):
-        self.basic_auth = {
-            'name': name,
-            'password': password
-        }
-
-    #Request Parameters
-    ##setting domain name
-    def set_domain(self, domain_name):
-        self.domain = domain_name
 
     ##setting URL by domain and guest_space_id.
     def make_url(self, api, guest_space_id=''):
@@ -63,7 +63,7 @@ class Kintone:
         }
         #basic auth
         if (self.basic_auth):
-            basic_pass = self.basic_auth['name'] + ':' + self.basic_auth['password']
+            basic_pass = self.basic_auth['id'] + ':' + self.basic_auth['password']
             headers['Authorization'] = 'Basic ' + base64.b64encode(basic_pass.encode('utf-8'))
         #user auth
         if (self.user_auth):
@@ -94,7 +94,7 @@ class Kintone:
             url = self.make_url('record', guest_space_id) + self.make_inquiry(params)
             headers_obj = self.make_headers(method)
         except:
-            err = 'URL/Headerの作成でエラーが発生しました'
+            err = "Error: can't make URL or request headers."
             #print(err)
             return err
         try:
@@ -105,14 +105,14 @@ class Kintone:
             #print(resp_headers)
             return response
         except:
-            err = 'レコードの送信でエラーが発生しました'
+            err = "Error: failed sending request."
             #print(err)
             return err
 
     ##Getting Records by query.
     def get_records(self, app, query='', fields=[], all_records=False, guest_space_id=''):
         if len(fields) > 100:
-            err = '指定できるフィールド数は100個までです'
+            err = 'Error: fields is needed less than 100 items.'
             #print(err)
             return err
         method = 'GET'
@@ -135,7 +135,7 @@ class Kintone:
                 #for debug
                 #print(url)
             except:
-                err = 'URL/Headerの作成でエラーが発生しました'
+                err = "Error: failed sending request."
                 #print(err)
                 return err
             try:
@@ -143,7 +143,7 @@ class Kintone:
                 (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
                 return json.loads(content.decode('utf-8'))
             except:
-                err = 'レコードの送信でエラーが発生しました'
+                err = "Error: can't make URL or request headers."
                 #print(err)
                 return err
         else:
@@ -153,7 +153,7 @@ class Kintone:
             try:
                 headers_obj = self.make_headers(method)
             except:
-                err = 'Headerの作成でエラーが発生しました'
+                err = "Error: can't make request headers."
                 #print(err)
                 return err
             offset = 0
@@ -162,7 +162,7 @@ class Kintone:
                 try:
                     url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
                 except:
-                    err = 'URLの作成でエラーが発生しました'
+                    err = "Error: can't make URL."
                     #print(err)
                     return err
                 #for debug
@@ -183,7 +183,7 @@ class Kintone:
                     else:
                         offset += 100
                 except:
-                    err = 'レコードの送信でエラーが発生しました'
+                    err = "Error: failed sending request."
                     #print(err)
                     return err
             return response
@@ -191,7 +191,7 @@ class Kintone:
     ##Deleting Records
     def del_records(self, app, ids, guest_space_id=''):
         if (len(ids) > 100):
-            err = '指定できるレコード数は100個までです'
+            err = 'Error: ids is needed less than 100 items.'
             #print(err)
             return err
         method = 'DELETE'
@@ -202,7 +202,7 @@ class Kintone:
             url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
             headers_obj = self.make_headers(method)
         except:
-            err = 'URL/Headerの作成でエラーが発生しました'
+            err = "Error: can't make URL or request headers."
             #print(err)
             return err
         try:
@@ -212,7 +212,7 @@ class Kintone:
             #print(resp_headers)
             return json.loads(content.decode('utf-8'))
         except:
-            err = 'レコードの送信でエラーが発生しました'
+            err = "Error: failed sending request."
             #print(err)
             return err
 
@@ -228,7 +228,7 @@ class Kintone:
             url = self.make_url('record', guest_space_id)
             headers_obj = self.make_headers(method)
         except:
-            err = 'URL/Headerの作成でエラーが発生しました'
+            err = "Error: can't make URL or request headers."
             #print(err)
             return err
         try:
@@ -239,14 +239,14 @@ class Kintone:
             #print(resp_headers)
             return response
         except:
-            err = 'レコードの送信でエラーが発生しました'
+            err = "Error: failed sending request."
             #print(err)
             return err
 
     ##Post Records.
     def post_records(self, app, records, guest_space_id=''):
         if (len(records) > 100):
-            err = '指定できるレコード数は100個までです'
+            err = 'Error: records is needed less than 100 items.'
             #print(err)
             return err
         method = 'POST'
@@ -258,7 +258,7 @@ class Kintone:
             url = self.make_url('records', guest_space_id)
             headers_obj = self.make_headers(method)
         except:
-            err = 'URL/Headerの作成でエラーが発生しました'
+            err = "Error: can't make URL or request headers."
             #print(err)
             return err
         try:
@@ -269,7 +269,7 @@ class Kintone:
             #print(resp_headers)
             return response
         except:
-            err = 'レコードの送信でエラーが発生しました'
+            err = "Error: failed sending request."
             #print(err)
             return err
 
@@ -286,7 +286,7 @@ class Kintone:
             url = self.make_url('record', guest_space_id)
             headers_obj = self.make_headers(method)
         except:
-            err = 'URL/Headerの作成でエラーが発生しました'
+            err = "Error: can't make URL or request headers."
             #print(err)
             return err
         try:
@@ -297,14 +297,14 @@ class Kintone:
             #print(resp_headers)
             return response
         except:
-            err = 'レコードの送信でエラーが発生しました'
+            err = "Error: failed sending request."
             #print(err)
             return err
 
     ##Post Records.
     def put_records(self, app, records, guest_space_id=''):
         if (len(records) > 100):
-            err = '指定できるレコード数は100個までです'
+            err = 'Error: records is needed less than 100 items.'
             #print(err)
             return err
         method = 'PUT'
@@ -316,7 +316,7 @@ class Kintone:
             url = self.make_url('records', guest_space_id)
             headers_obj = self.make_headers(method)
         except:
-            err = 'URL/Headerの作成でエラーが発生しました'
+            err = "Error: can't make URL or request headers."
             #print(err)
             return err
         try:
@@ -327,6 +327,6 @@ class Kintone:
             #print(resp_headers)
             return response
         except:
-            err = 'レコードの送信でエラーが発生しました'
+            err = "Error: failed sending request."
             #print(err)
             return err
