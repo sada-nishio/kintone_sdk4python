@@ -24,6 +24,7 @@ from kintone_sdk4python import Kintone
 #make class and set domain, authentication(user auth or api-token auth)
 kintone = Kintone()
 kintone.set_domain('example.cybozu.com')
+kintone.set_basic_auth('id', 'password')
 kintone.set_user_auth('login_name', 'password')
 kintone.set_token_auth('api-token')
 
