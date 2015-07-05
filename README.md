@@ -2,8 +2,8 @@
 kintone SDK for Python
 
 ##Requrements
-Python 4.3 or Later
-pip
+* Python 4.3 or Later
+* pip
 
 ##Dependency
 * [httplib2](https://github.com/jcgregorio/httplib2)
