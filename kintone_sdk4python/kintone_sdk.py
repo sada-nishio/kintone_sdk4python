@@ -2,6 +2,7 @@
 # -*- coding: utf_8 -*-
 
 try:
+    import sys
     import base64
     import urllib
     import httplib2
@@ -11,7 +12,7 @@ except:
 
 class Kintone:
     """
-    kintone SDK for Python
+    kintone SDK for Python is kintone REST API Library.
 
     """
     #initialize

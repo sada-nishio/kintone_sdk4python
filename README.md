@@ -1,5 +1,5 @@
 # kintone SDK for Python
-kintone SDK for Python
+kintone SDK for Python is kintone REST API Library.
 
 ##Requrements
 * Python 4.3 or Later
@@ -18,6 +18,9 @@ $ sudo pip uninstall kintone_sdk4python
 
 ##Usage
 ```{.python}
+#import
+from kintone_sdk4python import Kintone
+
 #make class and set domain, authentication(user auth or api-token auth)
 kintone = Kintone()
 kintone.set_domain('example.cybozu.com')
