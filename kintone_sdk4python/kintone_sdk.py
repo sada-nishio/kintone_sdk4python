@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf_8 -*-
 
-import sys
 import base64
 import urllib
 import httplib2
@@ -91,16 +90,31 @@ class Kintone:
             'app': app,
             'id': id
         }
-        url = self.make_url('record', guest_space_id) + self.make_inquiry(params)
-        headers_obj = self.make_headers(method)
-        http_client = httplib2.Http()
-        (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
-        #for debug
-        #print(resp_headers)
-        return json.loads(content.decode('utf-8'))
+        try:
+            url = self.make_url('record', guest_space_id) + self.make_inquiry(params)
+            headers_obj = self.make_headers(method)
+        except:
+            err = 'URL/Headerの作成でエラーが発生しました'
+            #print(err)
+            return err
+        try:
+            http_client = httplib2.Http()
+            (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
+            response = json.loads(content.decode('utf-8'))
+            #for debug
+            #print(resp_headers)
+            return response
+        except:
+            err = 'レコードの送信でエラーが発生しました'
+            #print(err)
+            return err
 
     ##Getting Records by query.
-    def get_records(self, app, query='', fields=[], totalCount=False, guest_space_id=''):
+    def get_records(self, app, query='', fields=[], all_records=False, guest_space_id=''):
+        if len(fields) > 100:
+            err = '指定できるフィールド数は100個までです'
+            #print(err)
+            return err
         method = 'GET'
         params = {
             'app': app
@@ -112,14 +126,207 @@ class Kintone:
             for field in fields:
                 params['fields' + '[' + str(i) + ']'] = field
                 i += 1
-        if (totalCount):
-            params['totalCount'] = totalCount
-        url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
-        print(url)
-        headers_obj = self.make_headers(method)
-        http_client = httplib2.Http()
-        (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
-        #for debug
-        #print(resp_headers)
-        return json.loads(content.decode('utf-8'))
 
+        if (all_records == False):
+            params['query'] = query
+            try:
+                url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
+                headers_obj = self.make_headers(method)
+                #for debug
+                #print(url)
+            except:
+                err = 'URL/Headerの作成でエラーが発生しました'
+                #print(err)
+                return err
+            try:
+                http_client = httplib2.Http()
+                (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
+                return json.loads(content.decode('utf-8'))
+            except:
+                err = 'レコードの送信でエラーが発生しました'
+                #print(err)
+                return err
+        else:
+            response = {
+                'records': []
+            }
+            try:
+                headers_obj = self.make_headers(method)
+            except:
+                err = 'Headerの作成でエラーが発生しました'
+                #print(err)
+                return err
+            offset = 0
+            while True:
+                params['query'] = query + ' offset ' + str(offset)
+                try:
+                    url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
+                except:
+                    err = 'URLの作成でエラーが発生しました'
+                    #print(err)
+                    return err
+                #for debug
+                #print(url)
+                try:
+                    (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
+                    tmp_resp = json.loads(content.decode('utf-8'))
+                    #Error:
+                    if (tmp_resp['errors']):
+                        return tmp_resp
+                    #Success:
+                    for record in tmp_resp['records']:
+                        response['records'].append(record)
+                    #for debug
+                    #print(resp_headers)
+                    if len(tmp_resp['records']) < 100:
+                        break
+                    else:
+                        offset += 100
+                except:
+                    err = 'レコードの送信でエラーが発生しました'
+                    #print(err)
+                    return err
+            return response
+
+    ##Deleting Records
+    def del_records(self, app, ids, guest_space_id=''):
+        if (len(ids) > 100):
+            err = '指定できるレコード数は100個までです'
+            #print(err)
+            return err
+        method = 'DELETE'
+        params = {
+            'app': app
+        }
+        try:
+            url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
+            headers_obj = self.make_headers(method)
+        except:
+            err = 'URL/Headerの作成でエラーが発生しました'
+            #print(err)
+            return err
+        try:
+            http_client = httplib2.Http()
+            (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
+            #for debug
+            #print(resp_headers)
+            return json.loads(content.decode('utf-8'))
+        except:
+            err = 'レコードの送信でエラーが発生しました'
+            #print(err)
+            return err
+
+    ##Post Record.
+    def post_record(self, app, record={}, guest_space_id=''):
+        method = 'POST'
+        params = {
+            'app': app
+        }
+        if (record):
+            params['record'] = record
+        try:
+            url = self.make_url('record', guest_space_id)
+            headers_obj = self.make_headers(method)
+        except:
+            err = 'URL/Headerの作成でエラーが発生しました'
+            #print(err)
+            return err
+        try:
+            http_client = httplib2.Http()
+            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
+            response = json.loads(content.decode('utf-8'))
+            #for debug
+            #print(resp_headers)
+            return response
+        except:
+            err = 'レコードの送信でエラーが発生しました'
+            #print(err)
+            return err
+
+    ##Post Records.
+    def post_records(self, app, records, guest_space_id=''):
+        if (len(records) > 100):
+            err = '指定できるレコード数は100個までです'
+            #print(err)
+            return err
+        method = 'POST'
+        params = {
+            'app': app,
+            'records': records
+        }
+        try:
+            url = self.make_url('records', guest_space_id)
+            headers_obj = self.make_headers(method)
+        except:
+            err = 'URL/Headerの作成でエラーが発生しました'
+            #print(err)
+            return err
+        try:
+            http_client = httplib2.Http()
+            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
+            response = json.loads(content.decode('utf-8'))
+            #for debug
+            #print(resp_headers)
+            return response
+        except:
+            err = 'レコードの送信でエラーが発生しました'
+            #print(err)
+            return err
+
+    ##Put Record.
+    def put_record(self, app, id, record={}, guest_space_id=''):
+        method = 'PUT'
+        params = {
+            'app': app,
+            'id': id
+        }
+        if (record):
+            params['record'] = record
+        try:
+            url = self.make_url('record', guest_space_id)
+            headers_obj = self.make_headers(method)
+        except:
+            err = 'URL/Headerの作成でエラーが発生しました'
+            #print(err)
+            return err
+        try:
+            http_client = httplib2.Http()
+            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
+            response = json.loads(content.decode('utf-8'))
+            #for debug
+            #print(resp_headers)
+            return response
+        except:
+            err = 'レコードの送信でエラーが発生しました'
+            #print(err)
+            return err
+
+    ##Post Records.
+    def put_records(self, app, records, guest_space_id=''):
+        if (len(records) > 100):
+            err = '指定できるレコード数は100個までです'
+            #print(err)
+            return err
+        method = 'PUT'
+        params = {
+            'app': app,
+            'records': records
+        }
+        try:
+            url = self.make_url('records', guest_space_id)
+            headers_obj = self.make_headers(method)
+        except:
+            err = 'URL/Headerの作成でエラーが発生しました'
+            #print(err)
+            return err
+        try:
+            http_client = httplib2.Http()
+            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
+            response = json.loads(content.decode('utf-8'))
+            #for debug
+            #print(resp_headers)
+            return response
+        except:
+            err = 'レコードの送信でエラーが発生しました'
+            #print(err)
+            return err
