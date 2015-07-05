@@ -2,7 +2,7 @@
 kintone SDK for Python is kintone REST API Library.
 
 ##Requrements
-* Python 4.3 or Later
+* Python 3.4 or Later
 * pip
 
 ##Dependency
