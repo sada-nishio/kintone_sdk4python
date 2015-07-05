@@ -13,7 +13,7 @@ kintone SDK for Python is kintone REST API Library.
 #install
 $ sudo pip install -U git+https://github.com/sada-nishio/kintone_sdk4python.git
 #uninstall
-$ sudo pip uninstall kintone_sdk4python
+$ sudo pip uninstall kintone-SDK-for-Python
 ```
 
 ##Usage

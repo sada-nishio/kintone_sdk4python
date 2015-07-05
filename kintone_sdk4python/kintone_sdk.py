@@ -159,6 +159,10 @@ class Kintone:
                 return err
             offset = 0
             while True:
+                if(query):
+                    params['query'] = query + ' offset ' + str(offset)
+                else:
+                    params['query'] = 'offset ' + str(offset)
                 params['query'] = query + ' offset ' + str(offset)
                 try:
                     url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
@@ -169,10 +173,11 @@ class Kintone:
                 #for debug
                 #print(url)
                 try:
+                    http_client = httplib2.Http()
                     (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
                     tmp_resp = json.loads(content.decode('utf-8'))
                     #Error:
-                    if (tmp_resp['errors']):
+                    if ('errors' in tmp_resp):
                         return tmp_resp
                     #Success:
                     for record in tmp_resp['records']:
@@ -199,6 +204,11 @@ class Kintone:
         params = {
             'app': app
         }
+        if (ids):
+            i = 0
+            for id in ids:
+                params['ids' + '[' + str(i) + ']'] = id
+                i += 1
         try:
             url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
             headers_obj = self.make_headers(method)
