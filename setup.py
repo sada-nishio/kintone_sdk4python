@@ -13,5 +13,5 @@ setup(
     url = 'https://github.com/sada-nishio/kintone_sdk4python.git',
     keywords = 'kintone SDK for Python.',
     packages = find_packages(),
-    install_requires = ['httplib2']
+    install_requires = ['requests']
 )

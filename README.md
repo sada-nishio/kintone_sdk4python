@@ -1,12 +1,15 @@
 # kintone SDK for Python
 kintone SDK for Python is kintone REST API Library.
 
+##Version
+* 1.1.0
+
 ##Requrements
 * Python 3.4 or Later
 * pip
 
 ##Dependency
-* [httplib2](https://github.com/jcgregorio/httplib2)
+* [requests](https://github.com/kennethreitz/requests/)
 
 ##Installation
 ```{.bash}
@@ -18,7 +21,6 @@ $ sudo pip uninstall kintone-SDK-for-Python
 
 ##Usage
 ```{.python}
-#import
 from kintone_sdk4python import Kintone
 
 #make class and set domain, authentication(user auth or api-token auth)
@@ -35,19 +37,25 @@ kintone.get_record(app_num, record_id, guest_space_id)
 kintone.get_records(app_num, query='', fields=[], all_records=False, guest_space_id='')
 
 #post record
-post_record(app_num, record={}, guest_space_id='')
+kintone.post_record(app_num, record={}, guest_space_id='')
 
 #post records
-post_records(app_num, records, guest_space_id='')
+kintone.post_records(app_num, records, guest_space_id='')
 
 #put record
-put_record(app_num, id, record={}, guest_space_id='')
+kintone.put_record(app_num, id, record={}, guest_space_id='')
 
 #put records
-put_records(app, records, guest_space_id='')
+kintone.put_records(app, records, guest_space_id='')
 
 #delete records
-del_records(app_num, ids, guest_space_id='')
+kintone.delete_records(app_num, ids, guest_space_id='')
+
+#download file
+kintone.download_file(file_key='')
+
+#upload file
+kintone.upload_file(file_name, binary)
 ```
 
 ##License

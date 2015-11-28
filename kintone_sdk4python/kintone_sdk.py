@@ -2,19 +2,20 @@
 # -*- coding: utf_8 -*-
 
 try:
+    import os
     import sys
     import base64
     import urllib
-    import httplib2
     import json
+    import requests as req
 except:
     print("Error: can't import library")
 
 class Kintone:
-    """
+    '''
     kintone SDK for Python is kintone REST API Library.
 
-    """
+    '''
     #initialize
     def __init__(self):
         self.user_auth = {}
@@ -58,7 +59,7 @@ class Kintone:
         return url
 
     ##setting headers
-    def make_headers(self, method):
+    def make_headers(self, method, is_json=True):
         headers = {
             'Host': self.domain + ':443'
         }
@@ -75,7 +76,8 @@ class Kintone:
             headers['X-Cybozu-API-Token'] = self.token_auth['token']
         #Content-Type
         if (method == 'POST' or method == 'PUT'):
-            headers['Content-Type'] = 'application/json'
+            if (is_json):
+                headers['Content-Type'] = 'application/json'
         return headers
 
     ##adding URL parameters.
@@ -85,128 +87,109 @@ class Kintone:
 
     #Execution REST API
     ##Getting Record.
-    def get_record(self, app, id, guest_space_id=''):
+    def get_record(self, app_id, record_id, guest_space_id=''):
         method = 'GET'
         params = {
-            'app': app,
-            'id': id
+            'app': app_id,
+            'id': record_id
         }
         try:
             url = self.make_url('record', guest_space_id) + self.make_inquiry(params)
             headers_obj = self.make_headers(method)
         except:
             err = "Error: can't make URL or request headers."
-            #print(err)
             return err
         try:
-            http_client = httplib2.Http()
-            (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
-            response = json.loads(content.decode('utf-8'))
-            #for debug
-            #print(resp_headers)
-            return response
+            resp = req.request(method, url, headers=headers_obj)
+            return json.loads(resp.text)
         except:
-            err = "Error: failed sending request."
+            err = 'Error: failed sending request.'
             #print(err)
             return err
 
     ##Getting Records by query.
-    def get_records(self, app, query='', fields=[], all_records=False, guest_space_id=''):
-        if len(fields) > 100:
-            err = 'Error: fields is needed less than 100 items.'
-            #print(err)
-            return err
+    def get_records(self, app_id, query='', fields=[], all_records=False, guest_space_id=''):
         method = 'GET'
         params = {
-            'app': app
+            'app': app_id,
+            'totalCount': True
         }
-        if (query):
-            params['query'] = query
+        try:
+            headers_obj = self.make_headers(method)
+        except:
+            err = "Error: can't make request headers."
+            return err
+        if len(fields) > 100:
+            err = 'Error: fields is needed less than 100 items.'
+            return err
         if (fields):
             i = 0
             for field in fields:
                 params['fields' + '[' + str(i) + ']'] = field
                 i += 1
-
+        #All records or not
+        limit = 500
         if (all_records == False):
-            params['query'] = query
+            if(query):
+                params['query'] = query + ' limit ' + str(limit)
+            else:
+                params['query'] = 'limit ' + str(limit)
             try:
                 url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
-                headers_obj = self.make_headers(method)
-                #for debug
-                #print(url)
             except:
-                err = "Error: failed sending request."
-                #print(err)
+                err = 'Error: failed sending request.'
                 return err
             try:
-                http_client = httplib2.Http()
-                (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
-                return json.loads(content.decode('utf-8'))
+                resp = req.request(method, url, headers=headers_obj)
+                return json.loads(resp.text)
             except:
-                err = "Error: can't make URL or request headers."
-                #print(err)
+                err = 'Error: Failed Sending Request.'
                 return err
         else:
             response = {
                 'records': []
             }
-            try:
-                headers_obj = self.make_headers(method)
-            except:
-                err = "Error: can't make request headers."
-                #print(err)
-                return err
             offset = 0
             while True:
                 if(query):
-                    params['query'] = query + ' offset ' + str(offset)
+                    params['query'] = query + ' limit ' + str(limit) + ' offset ' + str(offset)
                 else:
-                    params['query'] = 'offset ' + str(offset)
-                params['query'] = query + ' offset ' + str(offset)
+                    params['query'] =  'limit ' + str(limit) + ' offset ' + str(offset)
                 try:
                     url = self.make_url('records', guest_space_id) + self.make_inquiry(params)
                 except:
                     err = "Error: can't make URL."
-                    #print(err)
                     return err
-                #for debug
-                #print(url)
                 try:
-                    http_client = httplib2.Http()
-                    (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
-                    tmp_resp = json.loads(content.decode('utf-8'))
+                    resp = req.request(method, url, headers=headers_obj)
+                    tmp_resp = json.loads(resp.text)
                     #Error:
                     if ('errors' in tmp_resp):
                         return tmp_resp
                     #Success:
                     for record in tmp_resp['records']:
                         response['records'].append(record)
-                    #for debug
-                    #print(resp_headers)
-                    if len(tmp_resp['records']) < 100:
+                    if len(tmp_resp['records']) < limit:
                         break
                     else:
-                        offset += 100
+                        offset += limit
                 except:
-                    err = "Error: failed sending request."
-                    #print(err)
+                    err = 'Error: failed sending request.'
                     return err
             return response
 
     ##Deleting Records
-    def del_records(self, app, ids, guest_space_id=''):
-        if (len(ids) > 100):
-            err = 'Error: ids is needed less than 100 items.'
-            #print(err)
-            return err
+    def delete_records(self, app_id, record_ids, guest_space_id=''):
         method = 'DELETE'
         params = {
-            'app': app
+            'app': app_id
         }
-        if (ids):
+        if (len(record_ids) > 100):
+            err = 'Error: record_ids is needed less than 100 items.'
+            return err
+        if (record_ids):
             i = 0
-            for id in ids:
+            for id in record_ids:
                 params['ids' + '[' + str(i) + ']'] = id
                 i += 1
         try:
@@ -214,24 +197,19 @@ class Kintone:
             headers_obj = self.make_headers(method)
         except:
             err = "Error: can't make URL or request headers."
-            #print(err)
             return err
         try:
-            http_client = httplib2.Http()
-            (resp_headers, content) = http_client.request(url, method, headers=headers_obj)
-            #for debug
-            #print(resp_headers)
-            return json.loads(content.decode('utf-8'))
+            resp = req.request(method, url, headers=headers_obj)
+            return json.loads(resp.text)
         except:
-            err = "Error: failed sending request."
-            #print(err)
+            err = 'Error: failed sending request.'
             return err
 
     ##Post Record.
-    def post_record(self, app, record={}, guest_space_id=''):
+    def post_record(self, app_id, record={}, guest_space_id=''):
         method = 'POST'
         params = {
-            'app': app
+            'app': app_id
         }
         if (record):
             params['record'] = record
@@ -243,26 +221,21 @@ class Kintone:
             #print(err)
             return err
         try:
-            http_client = httplib2.Http()
-            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
-            response = json.loads(content.decode('utf-8'))
-            #for debug
-            #print(resp_headers)
+            resp = req.request(method, url, data=json.dumps(params), headers=headers_obj)
+            response = json.loads(resp.text)
             return response
         except:
-            err = "Error: failed sending request."
-            #print(err)
+            err = 'Error: failed sending request.'
             return err
 
     ##Post Records.
-    def post_records(self, app, records, guest_space_id=''):
+    def post_records(self, app_id, records, guest_space_id=''):
         if (len(records) > 100):
             err = 'Error: records is needed less than 100 items.'
-            #print(err)
             return err
         method = 'POST'
         params = {
-            'app': app,
+            'app': app_id,
             'records': records
         }
         try:
@@ -270,26 +243,21 @@ class Kintone:
             headers_obj = self.make_headers(method)
         except:
             err = "Error: can't make URL or request headers."
-            #print(err)
             return err
         try:
-            http_client = httplib2.Http()
-            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
-            response = json.loads(content.decode('utf-8'))
-            #for debug
-            #print(resp_headers)
+            resp = req.request(method, url, data=json.dumps(params), headers=headers_obj)
+            response = json.loads(resp.text)
             return response
         except:
-            err = "Error: failed sending request."
-            #print(err)
+            err = 'Error: failed sending request.'
             return err
 
     ##Put Record.
-    def put_record(self, app, id, record={}, guest_space_id=''):
+    def put_record(self, app_id, record_id, record={}, guest_space_id=''):
         method = 'PUT'
         params = {
-            'app': app,
-            'id': id
+            'app': app_id,
+            'id': record_id
         }
         if (record):
             params['record'] = record
@@ -298,46 +266,74 @@ class Kintone:
             headers_obj = self.make_headers(method)
         except:
             err = "Error: can't make URL or request headers."
-            #print(err)
             return err
         try:
-            http_client = httplib2.Http()
-            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
-            response = json.loads(content.decode('utf-8'))
-            #for debug
-            #print(resp_headers)
+            resp = req.request(method, url, data=json.dumps(params), headers=headers_obj)
+            response = json.loads(resp.text)
             return response
         except:
-            err = "Error: failed sending request."
-            #print(err)
+            err = 'Error: failed sending request.'
             return err
 
     ##Post Records.
-    def put_records(self, app, records, guest_space_id=''):
-        if (len(records) > 100):
-            err = 'Error: records is needed less than 100 items.'
-            #print(err)
-            return err
+    def put_records(self, app_id, records, guest_space_id=''):
         method = 'PUT'
         params = {
-            'app': app,
+            'app': app_id,
             'records': records
         }
+        if (len(records) > 100):
+            err = 'Error: records is needed less than 100 items.'
+            return err
         try:
             url = self.make_url('records', guest_space_id)
             headers_obj = self.make_headers(method)
         except:
             err = "Error: can't make URL or request headers."
-            #print(err)
             return err
         try:
-            http_client = httplib2.Http()
-            (resp_headers, content) = http_client.request(url, method, body=json.dumps(params), headers=headers_obj)
-            response = json.loads(content.decode('utf-8'))
-            #for debug
-            #print(resp_headers)
+            resp = req.request(method, url, data=json.dumps(params), headers=headers_obj)
+            response = json.loads(resp.text)
             return response
         except:
-            err = "Error: failed sending request."
-            #print(err)
+            err = 'Error: failed sending request.'
+            return err
+
+    ##Download File
+    def download_file(self, file_key=''):
+        method = 'GET'
+        if (not file_key):
+            return 'fileKey is needed.'
+        params = {
+            'fileKey': file_key
+        }
+        try:
+            url = self.make_url('file') + self.make_inquiry(params)
+            headers_obj = self.make_headers(method)
+        except:
+            err = "Error: can't make URL or request headers."
+            return err
+        try:
+            print(url)
+            resp = req.request(method, url, headers=headers_obj)
+            return resp.content # this is bytes.
+        except:
+            err = 'Error: failed sending request.'
+            return err
+
+    ##Upload File
+    def upload_file(self, file_name, binary):
+        method = 'POST'
+        try:
+            url = self.make_url('file')
+            headers_obj = self.make_headers(method, False)
+        except:
+            err = "Error: can't make URL or request headers."
+            return err
+        try:
+            files = {'file': (file_name, binary, 'application/octet-stream')}
+            resp = req.request(method, url, files=files, headers=headers_obj)
+            return json.loads(resp.text)
+        except:
+            err = 'Error: failed sending request.'
             return err
